@@ -279,7 +279,7 @@ _kube_ps1_get_context() {
 _kube_ps1_get_ns() {
   if [[ "${KUBE_PS1_NS_ENABLE}" == true ]]; then
     KUBE_PS1_NAMESPACE="$(${KUBE_PS1_BINARY} config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)"
-    KUBE_PS1_NAMESPACE="${KUBE_PS1_NAMESPACE:-}"
+    KUBE_PS1_NAMESPACE="${KUBE_PS1_NAMESPACE-}"
 
     if [[ -n "${KUBE_PS1_NAMESPACE_FUNCTION}" ]]; then
         KUBE_PS1_NAMESPACE=$($KUBE_PS1_NAMESPACE_FUNCTION $KUBE_PS1_NAMESPACE)
@@ -312,7 +312,7 @@ _kube_ps1_get_context_ns() {
   fi
 
   KUBE_PS1_CONTEXT="${KUBE_PS1_CONTEXT:-N/A}"
-  KUBE_PS1_NAMESPACE="${KUBE_PS1_NAMESPACE:-}"
+  KUBE_PS1_NAMESPACE="${KUBE_PS1_NAMESPACE-}"
 
   # Cache which cfgfiles we can read in case they change.
   local conf
@@ -335,7 +335,7 @@ Toggle kube-ps1 prompt on
 
 Usage: kubeon [-g | --global] [-h | --help]
 
-With no arguments, turn oon kube-ps1 status for this shell instance (default).
+With no arguments, turn on kube-ps1 status for this shell instance (default).
 
   -g --global  turn on kube-ps1 status globally
   -h --help    print this message
