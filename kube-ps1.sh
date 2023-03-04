@@ -3,7 +3,7 @@
 # Kubernetes prompt helper for bash/zsh
 # Displays current context and namespace
 
-# Copyright 2023 Jon Mosco
+# Copyright 2022 Jon Mosco
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ _KUBE_PS1_SYMBOL_OC=${KUBE_PS1_SYMBOL_OC:-$'\ue7b7'}
 
 KUBE_PS1_NS_ENABLE="${KUBE_PS1_NS_ENABLE:-true}"
 KUBE_PS1_CONTEXT_ENABLE="${KUBE_PS1_CONTEXT_ENABLE:-true}"
+KUBE_PS1_USER_ENABLE="${KUBE_PS1_USER_ENABLE:-true}"
 KUBE_PS1_PREFIX="${KUBE_PS1_PREFIX-(}"
 KUBE_PS1_SEPARATOR="${KUBE_PS1_SEPARATOR-|}"
 KUBE_PS1_DIVIDER="${KUBE_PS1_DIVIDER-:}"
@@ -40,10 +41,12 @@ KUBE_PS1_SUFFIX="${KUBE_PS1_SUFFIX-)}"
 KUBE_PS1_SYMBOL_COLOR="${KUBE_PS1_SYMBOL_COLOR-blue}"
 KUBE_PS1_CTX_COLOR="${KUBE_PS1_CTX_COLOR-red}"
 KUBE_PS1_NS_COLOR="${KUBE_PS1_NS_COLOR-cyan}"
+KUBE_PS1_USR_COLOR="${KUBE_PS1_USR_COLOR-cyan}"
 KUBE_PS1_BG_COLOR="${KUBE_PS1_BG_COLOR}"
 
 KUBE_PS1_CLUSTER_FUNCTION="${KUBE_PS1_CLUSTER_FUNCTION}"
 KUBE_PS1_NAMESPACE_FUNCTION="${KUBE_PS1_NAMESPACE_FUNCTION}"
+KUBE_PS1_USER_FUNCTION="${KUBE_PS1_USER_FUNCTION}"
 
 _KUBE_PS1_KUBECONFIG_CACHE="${KUBECONFIG}"
 _KUBE_PS1_DISABLE_PATH="${HOME}/.kube/kube-ps1/disabled"
@@ -265,7 +268,7 @@ _kube_ps1_get_context() {
   if [[ "${KUBE_PS1_CONTEXT_ENABLE}" == true ]]; then
     KUBE_PS1_CONTEXT="$(${KUBE_PS1_BINARY} config current-context 2>/dev/null)"
     # Set namespace to 'N/A' if it is not defined
-    KUBE_PS1_CONTEXT="${KUBE_PS1_CONTEXT:-N/A}"
+    KUBE_PS1_CONTEXT="${KUBE_PS1_CONTEXT:-}"
 
     if [[ -n "${KUBE_PS1_CLUSTER_FUNCTION}" ]]; then
       KUBE_PS1_CONTEXT=$($KUBE_PS1_CLUSTER_FUNCTION $KUBE_PS1_CONTEXT)
@@ -276,10 +279,22 @@ _kube_ps1_get_context() {
 _kube_ps1_get_ns() {
   if [[ "${KUBE_PS1_NS_ENABLE}" == true ]]; then
     KUBE_PS1_NAMESPACE="$(${KUBE_PS1_BINARY} config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)"
-    KUBE_PS1_NAMESPACE="${KUBE_PS1_NAMESPACE:-N/A}"
+    KUBE_PS1_NAMESPACE="${KUBE_PS1_NAMESPACE:-}"
 
     if [[ -n "${KUBE_PS1_NAMESPACE_FUNCTION}" ]]; then
         KUBE_PS1_NAMESPACE=$($KUBE_PS1_NAMESPACE_FUNCTION $KUBE_PS1_NAMESPACE)
+    fi
+  fi
+}
+
+_kube_ps1_get_user() {
+  if [[ "${KUBE_PS1_USER_ENABLE}" == true ]]; then
+    KUBE_PS1_USER="$(${KUBE_PS1_BINARY} config view -o=jsonpath="{.contexts[?(@.name==\"$(${KUBE_PS1_BINARY} config current-context)\")].context.user}" 2>/dev/null)"
+
+    KUBE_PS1_USER="${KUBE_PS1_USER:-N/A}"
+
+    if [[ ! -z "${KUBE_PS1_USER_FUNCTION}" ]]; then
+        KUBE_PS1_USER=$($KUBE_PS1_USER_FUNCTION $KUBE_PS1_USER)
     fi
   fi
 }
@@ -297,7 +312,7 @@ _kube_ps1_get_context_ns() {
   fi
 
   KUBE_PS1_CONTEXT="${KUBE_PS1_CONTEXT:-N/A}"
-  KUBE_PS1_NAMESPACE="${KUBE_PS1_NAMESPACE:-N/A}"
+  KUBE_PS1_NAMESPACE="${KUBE_PS1_NAMESPACE:-}"
 
   # Cache which cfgfiles we can read in case they change.
   local conf
@@ -308,6 +323,7 @@ _kube_ps1_get_context_ns() {
 
   _kube_ps1_get_context
   _kube_ps1_get_ns
+  _kube_ps1_get_user
 }
 
 # Set kube-ps1 shell defaults
@@ -401,6 +417,14 @@ kube_ps1() {
   # Context
   if [[ "${KUBE_PS1_CONTEXT_ENABLE}" == true ]]; then
     KUBE_PS1+="$(_kube_ps1_color_fg $KUBE_PS1_CTX_COLOR)${KUBE_PS1_CONTEXT}${KUBE_PS1_RESET_COLOR}"
+  fi
+
+  # User
+  if [[ "${KUBE_PS1_USER_ENABLE}" == true ]]; then
+    if [[ -n "${KUBE_PS1_DIVIDER}" ]] && [[ "${KUBE_PS1_USER_ENABLE}" == true ]]; then
+      KUBE_PS1+="${KUBE_PS1_DIVIDER}"
+    fi
+    KUBE_PS1+="$(_kube_ps1_color_fg ${KUBE_PS1_USR_COLOR})${KUBE_PS1_USER}${KUBE_PS1_RESET_COLOR}"
   fi
 
   # Namespace
